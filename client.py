@@ -20,13 +20,13 @@ class Endpoint():
                 if self.byte_addr == packet.destination_address:
                     # Send a LocationResponsePacket back to the source
                     response_packet = LocationResponsePacket(
-                        self.byte_addr, packet.destination_address, self.socket.getsockname()
+                        self.byte_addr, packet.destination_address, self.socket.getsockname(), packet.count
                     )
                     response_bytes = response_packet.to_bytes()
                     self.socket.sendto(response_bytes, src)
             elif isinstance(packet, Packet) and not isinstance(
                 packet, LocationResponsePacket
-            ):
+            ) and packet.data != "TERMINATE":
                 print(f"Received packet at {self.byte_addr}: {packet.data}")
                 break
 
@@ -42,9 +42,10 @@ def main(argv):
     # Get 4-byte address of node to send packet to from the user
     client = Endpoint(4)
     destination_byte_addr = get_4_byte_code()
+    count = 0
     while True:
         # Encode the 4-byte code along with the message
-        packet_data = Packet(client.byte_addr, destination_byte_addr, "Hello World!")
+        packet_data = Packet(client.byte_addr, destination_byte_addr, "Hello World!", count)
         packet = packet_data.to_bytes()
         bufferSize = 65535
 
@@ -62,14 +63,17 @@ def main(argv):
         # Listen for incoming datagrams
         client.listen()
 
-        # It might be a good idea to close the socket after the transaction is done
-        client.socket.close()
-
         # If you want to keep sending messages, you can loop here
         # If you want to stop, you can break from the loop
         continue_input = input("Send another message? (y/n): ").lower()
         if continue_input != 'y':
+            # Send termination packet
+            termination_packet_data = Packet(client.byte_addr, client.byte_addr, "TERMINATE", count)
+            termination_packet = termination_packet_data.to_bytes()
+            comms.sendto(termination_packet, addr)
+            print(f"Sending termination packet to router from {client.byte_addr}")
             break
+        count += 1
 
 if __name__ == "__main__":
     main(sys.argv[1:])
