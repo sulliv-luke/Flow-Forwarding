@@ -1,0 +1,139 @@
+# Defines a small topology of 3 routers, 5 networks and 2 endpoints
+# docker compose -f compose.yaml --profile routers up -d
+# docker compose -f compose.yaml --profile endpoints --profile routers up -d
+# docker compose -f compose.yaml --profile routers --profile endpoints down -t 1
+
+# docker-compose --profile endpoints --profile routers up
+
+
+services:
+
+  # Router 1 uses a dedicated Dockerfile
+  router1:
+    profiles: ["routers"]
+    build:
+      context: .
+      dockerfile: Dockerfile.router
+    image: "pycimage_router"
+    volumes:
+      - .:/compnets
+    command: python3 server.py
+    stdin_open: true
+    tty: true
+    environment:
+      HOSTNAME: router1
+    networks:
+      - stub1
+      - trans1
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+
+  # Router 2 uses the generic Dockerfile for the rest
+  router2:
+    profiles: ["routers"]
+    build:
+      context: .
+      dockerfile: Dockerfile.router
+    image: "pycimage_router"
+    volumes:
+      - .:/compnets
+    command: python3 server.py
+    stdin_open: true
+    tty: true
+    environment:
+      HOSTNAME: router2
+    networks:
+      - trans1
+      - trans2
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+
+  # Router 3 also uses the generic Dockerfile for the rest
+  router3:
+    profiles: ["routers"]
+    build:
+      context: .
+      dockerfile: Dockerfile.router
+    image: "pycimage_router"
+    volumes:
+      - .:/compnets
+    command: python3 server.py
+    stdin_open: true
+    tty: true
+    environment:
+      HOSTNAME: router3
+    networks:
+      - stub2
+      - trans2
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+
+  # Client 1 also uses the generic Dockerfile for the rest
+  client1:
+    profiles: ["endpoints"]
+    build:
+      context: .
+      dockerfile: Dockerfile.rest
+    image: "pycimage_rest"
+    volumes:
+      - .:/compnets
+    #command: python3 client.py router1
+    stdin_open: true
+    tty: true
+    depends_on:
+      - router1
+    environment:
+      HOSTNAME: client1
+    networks:
+      - stub1
+
+  # Client 2 as well
+  client2:
+    profiles: ["endpoints"]
+    build:
+      context: .
+      dockerfile: Dockerfile.rest
+    image: "pycimage_rest"
+    volumes:
+      - .:/compnets
+    #command: python3 client.py router3
+    stdin_open: true
+    tty: true
+    depends_on:
+      - router3
+    environment:
+      HOSTNAME: client2
+    networks:
+      - stub2
+
+
+# 2 Stub networks and 3 transient networks
+networks:
+  stub1:
+    ipam:
+      driver: default
+      config:
+        - subnet: 192.168.0.0/24
+  stub2:
+    ipam:
+      driver: default
+      config:
+        - subnet: 192.168.10.0/24
+  trans1:
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.21.0.0/24
+  trans2:
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.22.0.0/24
+  trans3:
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.23.0.0/24
