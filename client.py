@@ -13,8 +13,14 @@ class Endpoint():
         print(f"Created endpoint with address {self.byte_addr}")
 
     def listen(self):
+        # Set a timeout for the socket
+        self.socket.settimeout(2.5)  # 5 seconds timeout
         while True:
-            packetbytes, src = self.socket.recvfrom(4096)
+            try:
+                packetbytes, src = self.socket.recvfrom(4096)
+            except socket.timeout:
+                print("Did not receive response in time")
+                break
             packet = Packet.from_bytes(packetbytes)
             if isinstance(packet, LocationRequestPacket):
                 if self.byte_addr == packet.destination_address:
@@ -28,7 +34,7 @@ class Endpoint():
                 packet, LocationResponsePacket
             ) and packet.data != "TERMINATE":
                 print(f"Received packet at {self.byte_addr}: {packet.data}")
-                break
+                break    
 
 def get_4_byte_code():
     while True:
@@ -41,9 +47,9 @@ def get_4_byte_code():
 def main(argv):
     # Get 4-byte address of node to send packet to from the user
     client = Endpoint(4)
-    destination_byte_addr = get_4_byte_code()
     count = 0
     while True:
+        destination_byte_addr = get_4_byte_code()
         # Encode the 4-byte code along with the message
         packet_data = Packet(client.byte_addr, destination_byte_addr, "Hello World!", count)
         packet = packet_data.to_bytes()

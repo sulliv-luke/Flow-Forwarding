@@ -13,7 +13,7 @@ class Endpoint():
         print(f"Created endpoint with address {self.byte_addr}")
 
     def listen(self):
-        print(f"Router {self.byte_addr} listening for packets at {self.socket.getsockname()}")
+        print(f"{self.byte_addr} listening for packets at {self.socket.getsockname()}")
         while True:
             packetbytes, src = self.socket.recvfrom(4096)
             packet = Packet.from_bytes(packetbytes)

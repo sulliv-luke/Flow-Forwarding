@@ -144,6 +144,7 @@ class Router():
                         self.byte_addr,
                         addr,
                         self.byte_addr,
+                        received_packet.count,
                     )
                     print(f"Sending location response packet to {received_packet.source_address}, count: {received_packet.count}")
                     self.socket.sendto(response_packet.to_bytes(), addr)
